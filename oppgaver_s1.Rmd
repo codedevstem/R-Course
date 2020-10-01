@@ -1,0 +1,230 @@
+outlo---
+title: "Oppgaver til sesjon 1"
+author: "André Waage Rivenæs & Jan Petter Iversen"
+date: "22. september 2020"
+output: html_document
+---
+
+Først laster vi inn pakker. Hvis dere mangler noen av pakkene under, må dere
+først skrive install.packages("pakkenavn") i konsollen, også kan dere kjøre
+kodesnutten under.
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(readxl)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+# Data import og vasking
+
+a) 
+Les inn Excel-filen “untidy_cashflow.xlsx” med hjelp av read_xlsx. Husk å
+spesifisere hvilke celler dere vil lese fra! Bruk: library(readxl). For hjelp
+skriv ?read_xlsx.
+
+Husk å legge excel-filen i samme område hvor dere har opprettet
+RStudio-prosjektet. Dette tillater at du kan lese inn filen ved å skrive kun
+navnet på filen, istedenfor å måtte angi hele stien.
+
+Merk at all kode skrives i de grå feltene under. 
+
+```{r}
+# Sett inn riktig filnavn og filsti
+# Bruk range-argumentet for å kun lese inn de cellene med innhold du er
+# interessert i.
+df <- readxl::read_excel("data/untidy_cashflow.xlsx", range = cell_rows(8:11))
+```
+
+Tips: For å se et objekt i R kan man skrive navnet i konsollen. Skriver man "df"
+i konsollen vil datasettet bli printet. I tillegg kan følgende funksjoner være
+nyttige for å studere strukturen til datasettet:
+
+- dim(df): viser antall rader og kolonner i datasettet
+- glimpse(df): viser strukturen til datasettet og hvilke kolonner det inneholder
+- View(df): åpner datasettet i en ny fane i et regneark-lignende format.
+Kolonnene kan sorteres og filtreres, men verdiene kan ikke endres. Obs: Denne
+funksjonen egner seg dårlig for veldig store datasett.
+
+
+b)
+Gjør dataen tidy ved hjelp av pivot_wider og/eller pivot_longer. Husk reglene:
+
+- hver variabel er en kolonne
+- hver observasjon er en rad
+- i en tabell er det kun én type “observasjonsenhet”
+
+PS: Det er (minst) to mulige løsninger. Den ene er best for plotting, mens den
+andre er mer tidy og bedre egnet for modellering o.l.
+
+```{r}
+df %>% 
+  pivot_longer(-??, names_to = ??, values_to = ??) %>% 
+  rename() %>% # Endre til fornuftige navn på kolonnene
+  mutate_at(vars(??), as.integer) # Endre til fornuftige type på variablene.
+```
+
+
+# Datatransformasjon
+Først leser vi inn data (trenger ikke endre noe her, men pass på at filen
+bysykkeldata.Rds ligger i undermappen "data").
+
+```{r setup data, include=FALSE}
+# base_url <- "http://data.urbansharing.com/bergenbysykkel.no/trips/v1/2018/"
+# months <- seq(6, 12)
+# list_urls <- paste0(base_url, sprintf('%0.2d', months), ".csv")
+# 
+# df_raw <- map_df(list_urls, ~ read_csv(.x))
+# 
+# df <- df_raw %>%
+#   mutate(distance_trip = round(geosphere::distCosine(cbind(start_station_longitude, start_station_latitude),
+#                                             cbind(end_station_longitude, end_station_latitude))))
+# saveRDS(df, file = "data/bysykkeldata.Rds")
+df <- readRDS("data/bysykkeldata.Rds")
+```
+
+## Filtrering og seleksjon
+
+a) Fjern sykkelturer som endte i "workshop" eller "UIP". Disse er ikke vanlige
+stasjoner. Bruk funksjonen "filter" fra dplyr.
+b) Fjern sykkelturer med varighet lenger enn 3600 sekunder (= 1 time).
+c) Lag en ny dataframe kalt dates_only hvor du kun velger kolonnene started_at
+og ended_at.
+
+
+```{r}
+# Kjør denne chunken for å se et utvalg av dataen som er lastet inn. Funksjonen
+# head() viser som default de 6 første radene i en dataframe, og egner seg godt
+# å bruke på store datasett
+
+df %>% 
+  head()
+```
+
+
+```{r}
+# Hint: Bruk funksjonen str_detect() fra pakken {stringr} for å sjekke om en
+# string inneholder visse bokstaver
+df <- df %>% 
+  filter() %>% # Filtrer bort sykkelturer med endestasjon i "workshop" eller "UIP"
+  filter() # Filtrer sykkelturer som varer lenger enn 3600 sekunder
+
+dates_only <- df %>% 
+  select()
+```
+
+## Mutate
+Legg til følgende variabler i df ved å bruke mutate:
+
+- Varighet i minutter (du har sekunder)
+- Måned turen startet (bruk lubridate::month())
+- Ukedag turen startet (bruk lubridate::day())
+- Tidspunkt på dagen da turen startet (bruk lubridate::hour())
+- En indikator på om turen ble gjennomført i helgen (lørdag/søndag), som er
+enten TRUE eller FALSE
+
+
+```{r}
+df %>% 
+  mutate(duration_minutes = , 
+         month_started = , 
+         wday_started = , 
+         hour_started = , 
+         weekend_trip = )
+```
+
+## Gruppering og summarise
+
+a) Grupper etter ukedag. Hvilken ukedag har flest sykkelturer? Bruk group_by +
+summarise og tellefunksjonen n().
+b) Grupper etter endestasjon. Hvilken endestasjon har de lengste turene i snitt?
+Sorter resultatet etter gjennomsnittlig durasjon ved å bruke arrange.
+
+```{r}
+# a
+df %>% 
+  group_by(?) %>% 
+  summarise(?)
+
+# b
+df %>% 
+  group_by(?) %>% 
+  summarise(snitt_varighet = ?) %>% 
+  arrange(?)
+```
+
+# Visualisering
+
+```{r}
+df_mdp <- df %>% 
+  filter(start_station_name == "Møllendalsplass")
+```
+
+## Scatter plots
+Bruk det mindre datasettet df_mdp (generert i kodesnutten over) for oppgavene under.
+
+### a) Visualiser sammenhengen mellom durasjon og lengde på tur med et scatter plot
+
+Hint: Bruk geom_point
+```{r}
+ggplot(df_mdp, aes(x = ?, y = ?)) +
+  geom_point()
+```
+
+
+### b) Samme som i a), men bruk geom_jitter i stedet for geom_point
+
+```{r}
+```
+
+### c) Legg til farge og transparens
+Hint: geom-funksjonene tar inn argumenter. alpha = [et tall mellom 0 og 1] og
+color = "[navn på en farge]" styrer transparens og farge på punkter.
+```{r}
+```
+
+### d) Samme som i b), men vis bare turer som varte i 30 minutter eller mindre
+Bruk ylim(). Argumentet til ylim er en vektor med laveste grense som første
+element og øvre grense som andre element.En vektor lages med funksjonen c().
+```{r}
+```
+
+### e) Legg til farger til punktene for å visualisere hvilket tidspunkt på døgnet turen ble gjennomført
+Hint: color er også et argument til aes()-funksjonen. Sett color =
+tidspunkt_tur_startet, og ggplot vil på magisk vis mappe farge til tidspunkt.
+Ser du noe interessant?
+
+```{r}
+```
+
+### f) Legg til en trendlinje til plottet i c)
+Bruk geom_smooth
+```{r}
+```
+
+## Histogrammer
+Bruk hele datasettet (df) for denne delen.
+
+### a) Bruk et histogram for å visualisere distribusjonen til tidspunktet på dagen hvor turer starter
+Bruk geom_histogram
+```{r}
+```
+
+### b) Som i a), men la hver bin representere en time
+Skriv "?geom_histogram" i konsollen for å lære hvordan du kan styre antall bins.
+Hint: Syklene er bare tilgjengelig mellom 05:00 - 24:00.
+```{r}
+```
+
+### c) Legg til en farge til plottet i b)
+Prøv "cornflowerblue", "coral2" eller "forestgreen". Forsøk å erstatte
+color-argumentet med fill.
+```{r}
+```
+
+## Density plots
+
+### a) Lag et density plot som visualiserer distribusjonen til turenes varighet
+```{r}
+```
